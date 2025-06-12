@@ -610,14 +610,6 @@ async function correctArticleSSE(content, customPrompt) {
         showStatus(`❌ Erreur démarrage SSE: ${error.message}`, 'error');
     }
 }
-        console.log('📡 Utilisation SSE pour texte long');
-        await correctArticleSSE(content, customPrompt);
-    } else {
-        console.log('🔄 Utilisation méthode synchrone pour texte court');
-        await correctArticleSync(content, customPrompt);
-    }
-    }
-}
 
 function getSelectedOptions() {
     // Plus de cases à cocher, on retourne un tableau vide
