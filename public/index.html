@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 Outil de Correction d'Articles - LADN</title>
+    <meta name="description" content="Correction automatique d'articles de presse avec IA Claude - Outil professionnel pour journalistes">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>">
+    <!-- Support HTML natif pour les corrections -->
+</head>
+<body>
+    <!-- Header moderne avec dégradé -->
+    <header class="main-header">
+        <div class="container">
+            <h1>🚀 Outil de Correction d'Articles</h1>
+            <p>Correction automatique avec IA Claude et vérification des sources</p>
+            <div class="header-stats" id="header-stats">
+                <span id="connection-status" class="status-indicator">🔴 Connexion en cours...</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Section 1: Gestion des prompts -->
+        <section class="prompt-section">
+            <h2>🎯 Prompts de correction</h2>
+            
+            <!-- Préréglages de prompts -->
+            <div class="quick-presets">
+                <h4>⚡ Prompts prédéfinis</h4>
+                <button onclick="applyPromptPreset('correction-simple')" class="preset-btn">📝 Correction simple</button>
+                <button onclick="applyPromptPreset('correction-complete')" class="preset-btn">🔍 Correction complète</button>
+                <button onclick="applyPromptPreset('fact-checking')" class="preset-btn">📊 Fact-checking</button>
+                <button onclick="applyPromptPreset('style-journalistique')" class="preset-btn">✍️ Style journalistique</button>
+            </div>
+            
+            <div class="prompt-controls">
+                <select id="saved-prompts">
+                    <option value="">Sélectionner un prompt sauvegardé</option>
+                </select>
+                <input type="text" id="prompt-name" placeholder="Nom pour sauvegarder">
+                <button onclick="savePrompt()">💾 Sauvegarder</button>
+                <button onclick="loadPrompt()">📁 Charger</button>
+                <button onclick="deletePrompt()">🗑️ Supprimer</button>
+            </div>
+            <textarea id="custom-prompt" placeholder="Instructions personnalisées pour Claude...">Tu es un correcteur expert pour un média français.
+
+Corrige cet article en appliquant :
+- Correction orthographique et grammaticale
+- Amélioration de la clarté et du style
+- Vérification des données factuelles avec sources
+
+IMPORTANT: Retourne le texte corrigé au format HTML. Utilise :
+- <strong> pour mettre en valeur les points importants
+- <em> pour les nuances
+- <h2> pour les titres si nécessaire
+- <blockquote> pour les citations importantes
+- <a href="URL" class="source">Source: description</a> pour les références
+- <mark class="correction"> pour surligner les corrections importantes
+
+Retourne uniquement le texte corrigé en HTML.</textarea>
+        </section>
+
+        <!-- Section 2: Import de contenu -->
+        <section class="upload-section">
+            <h2>📄 Import du contenu</h2>
+            
+            <!-- Zone de statistiques du contenu -->
+            <div class="content-stats" id="content-stats" style="display: none;">
+                <div class="stat-item">
+                    <span class="stat-label">Caractères:</span>
+                    <span class="stat-value" id="char-count">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Mots:</span>
+                    <span class="stat-value" id="word-count">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Tokens estimés:</span>
+                    <span class="stat-value" id="token-count">0</span>
+                </div>
+            </div>
+            
+            <div class="upload-area" id="upload-area">
+                <input type="file" id="file-input" accept=".pdf,.doc,.docx,.txt" style="display: none;">
+                <div class="upload-placeholder">
+                    <p>📁 Glissez-déposez votre fichier ici ou cliquez pour sélectionner</p>
+                    <small>Formats: PDF, Word (.doc, .docx), Texte (.txt) - Max 50MB</small>
+                </div>
+            </div>
+            
+            <div class="divider">OU</div>
+            
+            <textarea id="text-input" placeholder="Collez votre article ici..." oninput="updateContentStats()"></textarea>
+            
+            <div id="file-status"></div>
+        </section>
+
+        <!-- Section 4: Lancement -->
+        <section class="process-section">
+            <button id="correct-btn" class="primary-btn" onclick="correctArticle()">
+                🚀 Corriger l'article
+            </button>
+            <div id="processing-status" style="display: none;">
+                <div class="processing-container">
+                    <div class="spinner"></div>
+                    <div class="processing-text">
+                        <p>Correction en cours avec Claude...</p>
+                        <small id="processing-details">Cela peut prendre quelques minutes selon la longueur du texte</small>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 5: Résultats avec comparaison côte à côte -->
+        <section class="results-section" id="results-section" style="display: none;">
+            <h2>🔍 Comparaison et résultats</h2>
+            
+            <!-- Statistiques de correction -->
+            <div class="correction-stats" id="correction-stats">
+                <div class="stat-card">
+                    <h4>📊 Statistiques</h4>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-label">Caractères modifiés:</span>
+                            <span class="stat-value" id="chars-changed">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Mots modifiés:</span>
+                            <span class="stat-value" id="words-changed">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Changement:</span>
+                            <span class="stat-value" id="percent-changed">0%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Légende des couleurs -->
+            <div class="legend">
+                <span class="legend-item added">✅ Améliorations</span>
+                <span class="legend-item modified">⚠️ Modifications</span>
+                <span class="legend-item factcheck">🔍 Vérifications</span>
+            </div>
+
+            <!-- Comparaison côte à côte -->
+            <div class="comparison-container">
+                <div class="text-panel">
+                    <h3>📝 Texte original</h3>
+                    <div id="original-text" class="text-content"></div>
+                </div>
+                <div class="text-panel">
+                    <h3>✅ Texte corrigé</h3>
+                    <div id="corrected-text" class="text-content"></div>
+                </div>
+            </div>
+
+            <!-- Section vérifications factuelles -->
+            <div class="factcheck-section" id="factcheck-section" style="display: none;">
+                <h3>🔍 Vérifications factuelles</h3>
+                <div id="factcheck-content" class="factcheck-content"></div>
+            </div>
+
+            <!-- Actions -->
+            <div class="actions-bar">
+                <button onclick="acceptCorrection()" class="success-btn">✅ Accepter la correction</button>
+                <button onclick="rejectCorrection()" class="secondary-btn">❌ Rejeter</button>
+                <button onclick="downloadWord()" class="primary-btn">📄 Télécharger Word</button>
+                <button onclick="downloadText()" class="secondary-btn">📝 Télécharger Texte</button>
+                <button onclick="generateReport()" class="primary-btn">📊 Générer rapport</button>
+            </div>
+        </section>
+
+        <!-- Section 6: Historique -->
+        <section class="history-section">
+            <h2>📚 Historique des corrections</h2>
+            <div class="history-controls">
+                <button onclick="clearHistory()" class="secondary-btn">🗑️ Vider l'historique</button>
+                <span class="history-count">Corrections effectuées: <strong id="history-count">0</strong></span>
+            </div>
+            <div id="history-list" class="history-list">
+                <p class="no-history">Aucune correction effectuée</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="main-footer">
+        <div class="container">
+            <p>&copy; 2024 LADN - Outil de Correction d'Articles avec IA</p>
+            <p>Alimenté par Claude AI • Version 1.0</p>
+        </div>
+    </footer>
+
+    <!-- Modales -->
+    <div id="modal-overlay" class="modal-overlay" onclick="closeModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3 id="modal-title">Titre</h3>
+                <button onclick="closeModal()" class="modal-close">✕</button>
+            </div>
+            <div class="modal-body" id="modal-body">
+                Contenu de la modale
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeModal()" class="secondary-btn">Fermer</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

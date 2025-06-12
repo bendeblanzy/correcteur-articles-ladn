@@ -1,0 +1,22 @@
+RAPPORT DE CORRECTION
+=====================
+
+INFORMATIONS GÉNÉRALES:
+- Date: 12/06/2025 17:04:54
+- Temps de traitement: 41 secondes
+- Options utilisées: orthographe, grammaire, syntaxe, ponctuation
+- Prompt personnalisé: Oui
+
+STATISTIQUES:
+- Longueur originale: 7343 caractères
+- Longueur corrigée: 7411 caractères
+- Mots originaux: 1271
+- Mots corrigés: 1277
+- Mots modifiés: 6
+- Pourcentage de changement: 1%
+
+VÉRIFICATIONS FACTUELLES:
+Aucune vérification effectuée
+
+---
+Généré par l'Outil de Correction d'Articles - LADN
