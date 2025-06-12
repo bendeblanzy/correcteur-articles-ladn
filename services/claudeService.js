@@ -42,6 +42,48 @@ class ClaudeService {
             throw new Error(`Erreur lors de la correction: ${error.message}`);
         }
     }
+async correctArticleWithProgress(content, options = [], customPrompt = '', progressCallback = null) {
+        try {
+            console.log(`🚀 Démarrage correction SSE - Longueur: ${content.length} caractères`);
+            
+            // Validation de la longueur
+            this.validateContent(content);
+            
+            if (progressCallback) {
+                progressCallback('init', 'Initialisation de la correction...');
+            }
+            
+            // Construction du prompt optimisé
+            const systemPrompt = this.buildSystemPrompt(options, customPrompt);
+            
+            if (progressCallback) {
+                progressCallback('prompt_ready', 'Prompt préparé, lancement de Claude...');
+            }
+            
+            // Appel avec callbacks de progression
+            const response = await this.callClaudeWithWebSearch(systemPrompt, content, options, progressCallback);
+            
+            const result = {
+                originalText: content,
+                correctedText: response.correctedText,
+                factChecks: response.factChecks,
+                changes: this.analyzeChanges(content, response.correctedText),
+                searchesPerformed: response.searchesPerformed,
+                tokensUsed: response.tokensUsed,
+                timestamp: new Date().toISOString()
+            };
+
+            console.log('✅ Correction SSE terminée');
+            return result;
+
+        } catch (error) {
+            console.error('❌ Erreur dans correctArticleWithProgress:', error);
+            if (progressCallback) {
+                progressCallback('error', `Erreur: ${error.message}`);
+            }
+            throw new Error(`Erreur lors de la correction: ${error.message}`);
+        }
+    }
 
     validateContent(content) {
         const tokenCount = Math.ceil(content.length / 4); // Approximation pour le français
@@ -83,9 +125,14 @@ RÈGLES IMPORTANTES:
 - RETOURNE: Le texte COMPLET corrigé en HTML`;
     }
 
-    async callClaudeWithWebSearch(systemPrompt, content, options) {
+    async callClaudeWithWebSearch(systemPrompt, content, options, progressCallback = null) {
         try {
             const startTime = Date.now();
+            
+            // Callback de progression
+            if (progressCallback) {
+                progressCallback('preparation', 'Préparation de la requête Claude...');
+            }
             
             // Configuration simple sans recherche web (non disponible dans l'API standard)
             const requestData = {
@@ -104,13 +151,21 @@ RÈGLES IMPORTANTES:
                 'Content-Type': 'application/json'
             };
 
+            if (progressCallback) {
+                progressCallback('api_call', 'Envoi vers l\'API Claude...');
+            }
+
             const response = await axios.post(`${this.baseURL}/messages`, requestData, {
                 headers,
-                timeout: 28000 // 28 secondes - limite maximale sous Heroku (30s)
+                timeout: 120000 // 2 minutes pour les corrections SSE (pas de limite Heroku)
             });
 
             const processingTime = Date.now() - startTime;
             console.log(`📊 Correction terminée en ${processingTime}ms`);
+
+            if (progressCallback) {
+                progressCallback('processing', 'Traitement de la réponse Claude...');
+            }
 
             return this.processClaudeResponse(response.data, processingTime, content.length);
 

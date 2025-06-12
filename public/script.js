@@ -420,6 +420,13 @@ async function correctArticle() {
 
     console.log(`🚀 Starting correction - Length: ${content.length} chars, Prompt: ${customPrompt.substring(0, 100)}...`);
 
+    // Utiliser SSE pour les textes longs (>5000 caractères) pour éviter le timeout Heroku
+    if (content.length > 5000) {
+// ================================
+// CORRECTION SYNCHRONE (TEXTES COURTS)
+// ================================
+
+async function correctArticleSync(content, customPrompt) {
     showProcessing(true);
     updateProcessingDetails('Envoi de la demande à Claude...');
 
@@ -478,6 +485,129 @@ async function correctArticle() {
         }
         
         showStatus(`❌ ${errorMessage}: ${error.message}`, 'error');
+    }
+}
+
+// ================================
+// CORRECTION ASYNCHRONE SSE (TEXTES LONGS)
+// ================================
+
+async function correctArticleSSE(content, customPrompt) {
+    showProcessing(true);
+    updateProcessingDetails('🚀 Démarrage correction asynchrone...');
+
+    try {
+        // 1. Démarrer la correction asynchrone
+        const startResponse = await fetch('/api/correction-sse/start-async', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                content: content,
+                customPrompt: customPrompt
+            })
+        });
+
+        if (!startResponse.ok) {
+            const errorData = await startResponse.json();
+            throw new Error(errorData.error || `Erreur HTTP ${startResponse.status}`);
+        }
+
+        const startData = await startResponse.json();
+        const { correctionId, sseUrl } = startData;
+
+        console.log(`📡 SSE démarré: ${correctionId}`);
+        updateProcessingDetails('📡 Connexion en temps réel établie...');
+
+        // 2. Se connecter au flux SSE
+        const eventSource = new EventSource(sseUrl);
+        const startTime = Date.now();
+        let isComplete = false;
+
+        eventSource.addEventListener('start', (event) => {
+            const data = JSON.parse(event.data);
+            console.log('📡 SSE Start:', data);
+            updateProcessingDetails('⚡ Correction démarrée en arrière-plan...');
+        });
+
+        eventSource.addEventListener('progress', (event) => {
+            const data = JSON.parse(event.data);
+            console.log('📡 SSE Progress:', data);
+            updateProcessingDetails(`📊 ${data.stage}: ${data.details}`);
+        });
+
+        eventSource.addEventListener('complete', (event) => {
+            const data = JSON.parse(event.data);
+            console.log('📡 SSE Complete:', data);
+            
+            const processingTime = Date.now() - startTime;
+
+            currentArticle = {
+                original: content,
+                corrected: data.correctedText,
+                changes: data.changes,
+                factChecks: data.factChecks,
+                processing: data.processing,
+                timestamp: new Date(),
+                processingTime: processingTime,
+                promptUsed: customPrompt.substring(0, 200),
+                customPromptUsed: true
+            };
+
+            displayResults(currentArticle);
+            addToHistory(currentArticle);
+            showProcessing(false);
+            showStatus(`✅ Correction SSE terminée en ${Math.round(processingTime / 1000)}s`, 'success');
+            
+            isComplete = true;
+            eventSource.close();
+        });
+
+        eventSource.addEventListener('error', (event) => {
+            const data = JSON.parse(event.data);
+            console.error('📡 SSE Error:', data);
+            
+            showProcessing(false);
+            showStatus(`❌ Erreur SSE: ${data.error}`, 'error');
+            
+            isComplete = true;
+            eventSource.close();
+        });
+
+        // Gérer les erreurs de connexion SSE
+        eventSource.onerror = (error) => {
+            console.error('📡 SSE Connection Error:', error);
+            
+            if (!isComplete) {
+                showProcessing(false);
+                showStatus('❌ Erreur de connexion SSE. Rechargez la page.', 'error');
+                eventSource.close();
+            }
+        };
+
+        // Timeout de sécurité (5 minutes max)
+        setTimeout(() => {
+            if (!isComplete) {
+                console.warn('📡 SSE Timeout - fermeture forcée');
+                showProcessing(false);
+                showStatus('⏱️ Timeout SSE - correction trop longue', 'warning');
+                eventSource.close();
+            }
+        }, 5 * 60 * 1000);
+
+    } catch (error) {
+        console.error('❌ SSE Setup Error:', error);
+        showProcessing(false);
+        showStatus(`❌ Erreur démarrage SSE: ${error.message}`, 'error');
+    }
+}
+        console.log('📡 Utilisation SSE pour texte long');
+        await correctArticleSSE(content, customPrompt);
+    } else {
+        console.log('🔄 Utilisation méthode synchrone pour texte court');
+        await correctArticleSync(content, customPrompt);
+    }
     }
 }
 

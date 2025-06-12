@@ -4,6 +4,7 @@ const cors = require('cors');
 require('dotenv').config();
 
 const correctionRoutes = require('./routes/correction');
+const correctionSSERoutes = require('./routes/correctionSSE');
 const fileRoutes = require('./routes/files');
 
 const app = express();
@@ -17,6 +18,7 @@ app.use(express.static('public'));
 
 // Routes API
 app.use('/api/correction', correctionRoutes);
+app.use('/api/correction-sse', correctionSSERoutes);
 app.use('/api/files', fileRoutes);
 
 // Servir le frontend
