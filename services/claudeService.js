@@ -106,7 +106,7 @@ RÈGLES IMPORTANTES:
 
             const response = await axios.post(`${this.baseURL}/messages`, requestData, {
                 headers,
-                timeout: 300000 // 5 minutes pour permettre les recherches web
+                timeout: 25000 // 25 secondes pour éviter le timeout Heroku H12
             });
 
             const processingTime = Date.now() - startTime;
