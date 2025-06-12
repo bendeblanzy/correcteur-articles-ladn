@@ -534,20 +534,29 @@ async function correctArticleSSE(content, customPrompt) {
         let isComplete = false;
 
         eventSource.addEventListener('start', (event) => {
-            const data = JSON.parse(event.data);
-            console.log('📡 SSE Start:', data);
-            updateProcessingDetails('⚡ Correction démarrée en arrière-plan...');
+            try {
+                const data = event.data ? JSON.parse(event.data) : {};
+                console.log('📡 SSE Start:', data);
+                updateProcessingDetails('⚡ Correction démarrée en arrière-plan...');
+            } catch (error) {
+                console.warn('📡 SSE Start parse error:', error);
+            }
         });
 
         eventSource.addEventListener('progress', (event) => {
-            const data = JSON.parse(event.data);
-            console.log('📡 SSE Progress:', data);
-            updateProcessingDetails(`📊 ${data.stage}: ${data.details}`);
+            try {
+                const data = event.data ? JSON.parse(event.data) : {};
+                console.log('📡 SSE Progress:', data);
+                updateProcessingDetails(`📊 ${data.stage}: ${data.details}`);
+            } catch (error) {
+                console.warn('📡 SSE Progress parse error:', error);
+            }
         });
 
         eventSource.addEventListener('complete', (event) => {
-            const data = JSON.parse(event.data);
-            console.log('📡 SSE Complete:', data);
+            try {
+                const data = event.data ? JSON.parse(event.data) : {};
+                console.log('📡 SSE Complete:', data);
             
             const processingTime = Date.now() - startTime;
 
@@ -568,19 +577,34 @@ async function correctArticleSSE(content, customPrompt) {
             showProcessing(false);
             showStatus(`✅ Correction SSE terminée en ${Math.round(processingTime / 1000)}s`, 'success');
             
-            isComplete = true;
-            eventSource.close();
+                isComplete = true;
+                eventSource.close();
+            } catch (error) {
+                console.error('📡 SSE Complete parse error:', error);
+                showProcessing(false);
+                showStatus('❌ Erreur traitement résultat SSE', 'error');
+                isComplete = true;
+                eventSource.close();
+            }
         });
 
         eventSource.addEventListener('error', (event) => {
-            const data = JSON.parse(event.data);
-            console.error('📡 SSE Error:', data);
-            
-            showProcessing(false);
-            showStatus(`❌ Erreur SSE: ${data.error}`, 'error');
-            
-            isComplete = true;
-            eventSource.close();
+            try {
+                const data = event.data ? JSON.parse(event.data) : { error: 'Erreur SSE inconnue' };
+                console.error('📡 SSE Error:', data);
+                
+                showProcessing(false);
+                showStatus(`❌ Erreur SSE: ${data.error}`, 'error');
+                
+                isComplete = true;
+                eventSource.close();
+            } catch (error) {
+                console.error('📡 SSE Error parse error:', error);
+                showProcessing(false);
+                showStatus('❌ Erreur SSE: Format de données invalide', 'error');
+                isComplete = true;
+                eventSource.close();
+            }
         });
 
         // Gérer les erreurs de connexion SSE
