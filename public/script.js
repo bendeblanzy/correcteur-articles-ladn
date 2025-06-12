@@ -422,6 +422,14 @@ async function correctArticle() {
 
     // Utiliser SSE pour les textes longs (>5000 caractères) pour éviter le timeout Heroku
     if (content.length > 5000) {
+        console.log('📡 Utilisation SSE pour texte long');
+        await correctArticleSSE(content, customPrompt);
+    } else {
+        console.log('🔄 Utilisation méthode synchrone pour texte court');
+        await correctArticleSync(content, customPrompt);
+    }
+}
+
 // ================================
 // CORRECTION SYNCHRONE (TEXTES COURTS)
 // ================================
