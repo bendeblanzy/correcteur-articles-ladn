@@ -105,24 +105,16 @@ async correctArticleWithProgress(content, options = [], customPrompt = '', progr
 Corrige cet article en appliquant :
 - Correction orthographique et grammaticale
 - Amélioration de la clarté et du style
-- Vérification des données factuelles avec sources
+- Vérification des données factuelles avec sources sur Internet
 
 IMPORTANT: Retourne le texte corrigé au format HTML. Utilise :
-- <strong> pour mettre en valeur les points importants
-- <em> pour les nuances
-- <h2> pour les titres si nécessaire
-- <blockquote> pour les citations importantes
-- <a href="URL" class="source">Source: description</a> pour les références
-- <mark class="correction"> pour surligner les corrections importantes
-- <p> pour structurer les paragraphes
+- La couleur rouge pour mettre en valeur les fautes d'orthographe corrigées
+- La couleur orange pour les mots remplacés
+- Le couleur verte pour indiquer les informations que tu auras vérifier sur le web sont exactes et en bleu si elles sont inexactes
 
-RÈGLES IMPORTANTES:
-- Garde le même ton et style journalistique original
-- Ne modifie pas le sens des informations
-- Traite l'INTÉGRALITÉ du texte fourni, du début à la fin
-- Conserve la longueur totale de l'article (ne tronque JAMAIS)
-- Respecte la mise en forme des paragraphes
-- RETOURNE: Le texte COMPLET corrigé en HTML`;
+Retourne uniquement le texte corrigé en HTML.
+
+A la fin donne ton avis sur la qualité de l'article avec les modifications potentielles à apporter pour l'améliorer.`;
     }
 
     async callClaudeWithWebSearch(systemPrompt, content, options, progressCallback = null) {

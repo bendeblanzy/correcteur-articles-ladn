@@ -249,77 +249,67 @@ function applyPromptPreset(presetType) {
     const prompts = {
         'correction-simple': `Tu es un correcteur expert pour un média français.
 
-Corrige cet article en appliquant uniquement :
+Corrige cet article en appliquant :
 - Correction orthographique et grammaticale
-- Amélioration de la ponctuation
+- Amélioration de la clarté et du style
+- Vérification des données factuelles avec sources sur Internet
 
 IMPORTANT: Retourne le texte corrigé au format HTML. Utilise :
-- <strong> pour mettre en valeur les éléments importants
-- <em> pour les nuances ou précisions
-- <mark class="correction"> pour surligner les corrections apportées
-- <del> et <ins> pour montrer les modifications importantes
-- Structure avec des <h2> si nécessaire
+- La couleur rouge pour mettre en valeur les fautes d'orthographe corrigées
+- La couleur orange pour les mots remplacés
+- Le couleur verte pour indiquer les informations que tu auras vérifier sur le web sont exactes et en bleu si elles sont inexactes
 
-Retourne uniquement le texte corrigé en HTML, sans commentaires.`,
+Retourne uniquement le texte corrigé en HTML.
+
+A la fin donne ton avis sur la qualité de l'article avec les modifications potentielles à apporter pour l'améliorer.`,
 
         'correction-complete': `Tu es un correcteur expert pour un média français.
 
 Corrige cet article en appliquant :
-- Correction orthographique et grammaticale complète
-- Amélioration de la clarté et du style journalistique
-- Optimisation des transitions entre paragraphes
-- Renforcement de la structure générale
-- Élimination des répétitions
+- Correction orthographique et grammaticale
+- Amélioration de la clarté et du style
+- Vérification des données factuelles avec sources sur Internet
 
 IMPORTANT: Retourne le texte corrigé au format HTML. Utilise :
-- <strong> pour mettre en valeur les points clés
-- <em> pour les nuances
-- <h2> pour structurer l'article
-- <blockquote> pour les citations ou points importants
-- <ul><li> pour les listes à puces si approprié
-- <mark class="improvement"> pour surligner les améliorations de style
-- <span class="enhanced"> pour les transitions optimisées
+- La couleur rouge pour mettre en valeur les fautes d'orthographe corrigées
+- La couleur orange pour les mots remplacés
+- Le couleur verte pour indiquer les informations que tu auras vérifier sur le web sont exactes et en bleu si elles sont inexactes
 
-Retourne uniquement le texte corrigé en HTML, sans commentaires.`,
+Retourne uniquement le texte corrigé en HTML.
 
-        'fact-checking': `Tu es un correcteur expert pour un média français avec vérification factuelle.
+A la fin donne ton avis sur la qualité de l'article avec les modifications potentielles à apporter pour l'améliorer.`,
+
+        'fact-checking': `Tu es un correcteur expert pour un média français.
 
 Corrige cet article en appliquant :
 - Correction orthographique et grammaticale
-- Vérification des données factuelles avec recherche web automatique
-- Vérification des dates, chiffres, noms propres
-- Ajout de sources fiables
-- Signalement des informations douteuses
+- Amélioration de la clarté et du style
+- Vérification des données factuelles avec sources sur Internet
 
 IMPORTANT: Retourne le texte corrigé au format HTML. Utilise :
-- <strong class="verified"> pour les faits vérifiés
-- <em> pour les nuances
-- <a href="URL" class="source">Source: description</a> pour les références
-- <blockquote class="verified"> pour les citations vérifiées
-- <div class="warning">⚠️ <strong>À vérifier</strong>: information</div> pour les informations douteuses
-- <mark class="fact-check"> pour surligner les vérifications factuelles
+- La couleur rouge pour mettre en valeur les fautes d'orthographe corrigées
+- La couleur orange pour les mots remplacés
+- Le couleur verte pour indiquer les informations que tu auras vérifier sur le web sont exactes et en bleu si elles sont inexactes
 
-Retourne uniquement le texte corrigé en HTML avec sources.`,
+Retourne uniquement le texte corrigé en HTML.
 
-        'style-journalistique': `Tu es un correcteur expert pour un média français spécialisé en style.
+A la fin donne ton avis sur la qualité de l'article avec les modifications potentielles à apporter pour l'améliorer.`,
+
+        'style-journalistique': `Tu es un correcteur expert pour un média français.
 
 Corrige cet article en appliquant :
-- Correction linguistique complète
-- Amélioration du style journalistique français
-- Optimisation des titres et accroches
-- Renforcement de la conclusion
-- Adaptation du ton professionnel
+- Correction orthographique et grammaticale
+- Amélioration de la clarté et du style
+- Vérification des données factuelles avec sources sur Internet
 
 IMPORTANT: Retourne le texte corrigé au format HTML. Utilise :
-- <h1 class="optimized"> pour le titre principal optimisé
-- <h2 class="enhanced"> pour les sous-titres améliorés
-- <strong> pour les points clés
-- <em class="style"> pour le style
-- <blockquote class="highlight"> pour les citations marquantes
-- <mark class="style-improvement"> pour surligner les améliorations de style
-- Structure professionnelle avec des <p> clairs
+- La couleur rouge pour mettre en valeur les fautes d'orthographe corrigées
+- La couleur orange pour les mots remplacés
+- Le couleur verte pour indiquer les informations que tu auras vérifier sur le web sont exactes et en bleu si elles sont inexactes
 
-Retourne uniquement le texte corrigé en HTML professionnel.`
+Retourne uniquement le texte corrigé en HTML.
+
+A la fin donne ton avis sur la qualité de l'article avec les modifications potentielles à apporter pour l'améliorer.`
     };
     
     const prompt = prompts[presetType];
