@@ -187,14 +187,18 @@ async correctArticleWithProgress(content, options = [], customPrompt = '', progr
             
             // Callback de progression
             if (progressCallback) {
-                progressCallback('preparation', 'Préparation de la requête Claude...');
+                progressCallback('preparation', 'Préparation de la requête Claude avec recherche web...');
             }
             
-            // Configuration simple sans recherche web (non disponible dans l'API standard)
+            // Configuration AVEC recherche web activée (format correct)
             const requestData = {
                 model: this.model,
                 max_tokens: 10000,
                 temperature: 0.3,
+                tools: [{
+                    type: "web_search_20250305",
+                    name: "web_search"
+                }],
                 messages: [{
                     role: 'user',
                     content: `${systemPrompt}\n\nTexte à corriger:\n${content}`
@@ -249,24 +253,42 @@ async correctArticleWithProgress(content, options = [], customPrompt = '', progr
     }
 
     processClaudeResponse(responseData, processingTime, originalLength = 0) {
-        const content = responseData.content[0];
         let correctedText = '';
         let factChecks = null;
         let searchesPerformed = [];
+        let allContent = responseData.content || [];
 
-        // Traitement du contenu selon le type de réponse
-        if (content.type === 'text') {
-            correctedText = content.text;
-        } else if (content.type === 'tool_use') {
-            // Si Claude utilise des tools, la réponse peut être plus complexe
-            // Pour l'instant, on extrait le texte principal
-            correctedText = responseData.content.find(c => c.type === 'text')?.text || '';
+        // Traitement du contenu avec support des tools web_search
+        for (const content of allContent) {
+            if (content.type === 'text') {
+                correctedText += content.text;
+            } else if (content.type === 'tool_use' && content.name === 'web_search') {
+                // Capturer les recherches web effectuées
+                const searchQuery = content.input?.query || 'Recherche inconnue';
+                searchesPerformed.push({
+                    query: searchQuery,
+                    timestamp: new Date().toISOString()
+                });
+                console.log(`🔍 Recherche web effectuée: "${searchQuery}"`);
+            }
         }
 
-        // Extraire les informations de recherche web si présentes
-        if (responseData.web_searches) {
-            searchesPerformed = responseData.web_searches;
-            console.log(`🔍 ${searchesPerformed.length} recherches web effectuées`);
+        // Traitement des résultats de recherche web dans les tool_result
+        const toolResults = allContent.filter(c => c.type === 'tool_result');
+        if (toolResults.length > 0) {
+            console.log(`📊 ${toolResults.length} résultats de recherche web reçus`);
+            
+            // Ajouter les informations de source aux searches performed
+            toolResults.forEach((result, index) => {
+                if (searchesPerformed[index]) {
+                    searchesPerformed[index].results = result.content || 'Résultats non disponibles';
+                }
+            });
+        }
+
+        // Log du nombre total de recherches
+        if (searchesPerformed.length > 0) {
+            console.log(`✅ ${searchesPerformed.length} recherches web effectuées avec succès`);
         }
 
         // Extraire les vérifications factuelles du texte si présentes
