@@ -245,96 +245,10 @@ function deletePrompt() {
 // PRÉRÉGLAGES DE PROMPTS
 // ================================
 
-function applyPromptPreset(presetType) {
-    const prompts = {
-        'correction-simple': `Tu es un correcteur expert pour un média français.
-
-Corrige cet article en appliquant :
-- Correction orthographique et grammaticale
-- Amélioration de la clarté et du style
-- Vérification des données factuelles avec sources sur Internet
-
-IMPORTANT: Retourne le texte corrigé au format HTML. Utilise :
-- La couleur rouge pour mettre en valeur les fautes d'orthographe corrigées
-- La couleur orange pour les mots remplacés
-- Le couleur verte pour indiquer les informations que tu auras vérifier sur le web sont exactes et en bleu si elles sont inexactes
-
-Retourne uniquement le texte corrigé en HTML.
-
-A la fin donne ton avis sur la qualité de l'article avec les modifications potentielles à apporter pour l'améliorer.`,
-
-        'correction-complete': `Tu es un correcteur expert pour un média français.
-
-Corrige cet article en appliquant :
-- Correction orthographique et grammaticale
-- Amélioration de la clarté et du style
-- Vérification des données factuelles avec sources sur Internet
-
-IMPORTANT: Retourne le texte corrigé au format HTML. Utilise :
-- La couleur rouge pour mettre en valeur les fautes d'orthographe corrigées
-- La couleur orange pour les mots remplacés
-- Le couleur verte pour indiquer les informations que tu auras vérifier sur le web sont exactes et en bleu si elles sont inexactes
-
-Retourne uniquement le texte corrigé en HTML.
-
-A la fin donne ton avis sur la qualité de l'article avec les modifications potentielles à apporter pour l'améliorer.`,
-
-        'fact-checking': `Tu es un correcteur expert pour un média français.
-
-Corrige cet article en appliquant :
-- Correction orthographique et grammaticale
-- Amélioration de la clarté et du style
-- Vérification des données factuelles avec sources sur Internet
-
-IMPORTANT: Retourne le texte corrigé au format HTML. Utilise :
-- La couleur rouge pour mettre en valeur les fautes d'orthographe corrigées
-- La couleur orange pour les mots remplacés
-- Le couleur verte pour indiquer les informations que tu auras vérifier sur le web sont exactes et en bleu si elles sont inexactes
-
-Retourne uniquement le texte corrigé en HTML.
-
-A la fin donne ton avis sur la qualité de l'article avec les modifications potentielles à apporter pour l'améliorer.`,
-
-        'style-journalistique': `Tu es un correcteur expert pour un média français.
-
-Corrige cet article en appliquant :
-- Correction orthographique et grammaticale
-- Amélioration de la clarté et du style
-- Vérification des données factuelles avec sources sur Internet
-
-IMPORTANT: Retourne le texte corrigé au format HTML. Utilise :
-- La couleur rouge pour mettre en valeur les fautes d'orthographe corrigées
-- La couleur orange pour les mots remplacés
-- Le couleur verte pour indiquer les informations que tu auras vérifier sur le web sont exactes et en bleu si elles sont inexactes
-
-Retourne uniquement le texte corrigé en HTML.
-
-A la fin donne ton avis sur la qualité de l'article avec les modifications potentielles à apporter pour l'améliorer.`
-    };
-    
-    const prompt = prompts[presetType];
-    if (prompt) {
-        document.getElementById('custom-prompt').value = prompt;
-        
-        const presetNames = {
-            'correction-simple': 'Correction simple',
-            'correction-complete': 'Correction complète',
-            'fact-checking': 'Fact-checking',
-            'style-journalistique': 'Style journalistique'
-        };
-        
-        showStatus(`⚡ Prompt "${presetNames[presetType]}" appliqué`, 'info');
-        console.log(`⚡ Prompt preset applied: ${presetType}`);
-    }
-}
-
-// Fonctions legacy pour compatibilité
-function applyPreset(presetType) {
-    applyPromptPreset(presetType);
-}
+// Fonctions de presets supprimées - utilisez désormais les prompts sauvegardés
 
 function clearOptions() {
-    // Plus nécessaire avec les prompts, mais on garde pour compatibilité
+    // Fonction legacy maintenue pour compatibilité
     document.getElementById('custom-prompt').value = '';
 }
 
@@ -410,7 +324,7 @@ async function correctArticle() {
 
     console.log(`🚀 Starting correction - Length: ${content.length} chars, Prompt: ${customPrompt.substring(0, 100)}...`);
 
-    // Utiliser SSE pour les textes longs (>5000 caractères) pour éviter le timeout Heroku
+    // Utiliser SSE pour les textes longs (>5000 caractères) pour éviter les timeouts
     if (content.length > 5000) {
         console.log('📡 Utilisation SSE pour texte long');
         await correctArticleSSE(content, customPrompt);

@@ -9,7 +9,7 @@ const activeCorrections = new Map();
 
 /**
  * Route SSE pour correction asynchrone
- * Contourne le timeout Heroku de 30s
+ * Permet les corrections longues sans timeout
  */
 router.get('/correct-async/:correctionId', async (req, res) => {
     const { correctionId } = req.params;
