@@ -54,3 +54,6 @@ public/uploads/
 # Données locales
 data/corrections/
 data/history/
+
+# Fichiers de sortie générés
+OUTPUT/
