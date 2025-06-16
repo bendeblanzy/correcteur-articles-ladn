@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const { Document, Packer, Paragraph, TextRun, HeadingLevel } = require('docx');
+const { Document, Packer, Paragraph, TextRun, HeadingLevel, ExternalHyperlink } = require('docx');
 const fs = require('fs');
 const path = require('path');
 const FileParser = require('../services/fileParser');
@@ -117,6 +117,66 @@ router.post('/parse', upload.single('file'), async (req, res) => {
     }
 });
 
+// Fonction pour convertir HTML coloré en formatage Word
+function parseHtmlToWordRuns(htmlContent) {
+    const runs = [];
+    
+    // Regex pour capturer les spans avec style et les liens
+    const htmlRegex = /<span style="color:\s*([^"]+)"[^>]*>(.*?)<\/span>|<a href="([^"]+)"[^>]*>(.*?)<\/a>|([^<]+)/gi;
+    
+    let match;
+    while ((match = htmlRegex.exec(htmlContent)) !== null) {
+        if (match[1] && match[2]) {
+            // Span avec couleur
+            const color = match[1].toLowerCase();
+            const text = match[2].replace(/<[^>]*>/g, ''); // Nettoyer les autres balises
+            
+            // Conversion des couleurs HTML vers Word
+            let wordColor = "000000"; // noir par défaut
+            if (color === "red") wordColor = "FF0000";
+            else if (color === "orange") wordColor = "FF8C00";
+            else if (color === "green") wordColor = "008000";
+            else if (color === "blue") wordColor = "0000FF";
+            else if (color === "#ffa500") wordColor = "FFA500"; // jaune
+            
+            runs.push(new TextRun({
+                text: text,
+                color: wordColor,
+                font: "Arial",
+                size: 24
+            }));
+        } else if (match[3] && match[4]) {
+            // Lien cliquable
+            const url = match[3];
+            const linkText = match[4].replace(/<[^>]*>/g, '');
+            
+            runs.push(new ExternalHyperlink({
+                children: [
+                    new TextRun({
+                        text: linkText,
+                        style: "Hyperlink",
+                        font: "Arial",
+                        size: 24
+                    })
+                ],
+                link: url
+            }));
+        } else if (match[5]) {
+            // Texte normal
+            const text = match[5];
+            if (text.trim()) {
+                runs.push(new TextRun({
+                    text: text,
+                    font: "Arial",
+                    size: 24
+                }));
+            }
+        }
+    }
+    
+    return runs;
+}
+
 // Route pour exporter en Word
 router.post('/export-word', async (req, res) => {
     try {
@@ -184,20 +244,23 @@ router.post('/export-word', async (req, res) => {
                         })
                     ] : []),
                     
-                    // Contenu principal - diviser en paragraphes
+                    // Contenu principal avec préservation du formatage HTML
                     ...content.split(/\n\s*\n/).map(paragraphText => {
                         const trimmed = paragraphText.trim();
                         if (trimmed.length === 0) return null;
                         
+                        // Conversion HTML vers TextRuns avec couleurs
+                        const wordRuns = parseHtmlToWordRuns(trimmed);
+                        
                         return new Paragraph({
-                            children: [
+                            children: wordRuns.length > 0 ? wordRuns : [
                                 new TextRun({
                                     text: trimmed,
                                     font: "Arial",
-                                    size: 24 // 12pt
+                                    size: 24
                                 })
                             ],
-                            spacing: { 
+                            spacing: {
                                 after: 200,
                                 line: 360 // 1.5 line spacing
                             }
