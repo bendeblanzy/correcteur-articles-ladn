@@ -21,10 +21,22 @@
         </div>
     </header>
 
+    <!-- Navigation par onglets -->
+    <nav class="tabs-nav">
+        <div class="container">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('correction')">🔧 Correction</button>
+                <button class="tab-btn" onclick="switchTab('translation')">🌐 Traduction</button>
+            </div>
+        </div>
+    </nav>
+
     <main class="container">
-        <!-- Section 1: Gestion des prompts -->
-        <section class="prompt-section">
-            <h2>🎯 Prompts de correction</h2>
+        <!-- SECTION CORRECTION -->
+        <div id="correction-tab" class="tab-content active">
+            <!-- Section 1: Gestion des prompts -->
+            <section class="prompt-section">
+                <h2>🎯 Prompts de correction</h2>
             
             <!-- Préréglages de prompts supprimés -->
             
@@ -37,93 +49,17 @@
                 <button onclick="loadPrompt()">📁 Charger</button>
                 <button onclick="deletePrompt()">🗑️ Supprimer</button>
             </div>
-            <textarea id="custom-prompt" placeholder="Instructions personnalisées pour Claude..."># Prompt Optimisé pour l'Outil de Correction
+            <textarea id="custom-prompt" placeholder="Instructions personnalisées pour Claude...">Tu es un correcteur expert pour un média français. Respecte le style et le ton du journaliste.
 
-Tu es un correcteur expert pour un média français. Respecte le style et le ton du journaliste (familier, formel, etc.).
+## CORRECTIONS À EFFECTUER :
+- Orthographe et grammaire
+- Syntaxe et ponctuation
+- Clarté et fluidité (uniquement si nécessaire)
 
-## PROCESSUS DE CORRECTION
-
-### 1. Correction Linguistique
-- Correction orthographique et grammaticale
-- Amélioration de la clarté et du style uniquement en cas d'incohérences majeures
-
-### 2. Fact-checking Intelligent
-
-#### CRITÈRES DE DÉCLENCHEMENT (recherche web UNIQUEMENT si) :
-- Données chiffrées récentes (< 2 ans) ET précises (statistiques, budgets, résultats)
-- Événements d'actualité ou développements récents
-- Citations directes et déclarations publiques
-- Termes techniques spécialisés que tu ne connais pas avec certitude
-- Informations qui contredisent tes connaissances établies
-
-#### NE RECHERCHE PAS pour :
-- Faits historiques établis (> 5 ans)
-- Connaissances générales stables
-- Informations que tu connais avec certitude
-- Opinions et analyses subjectives
-
-#### HIÉRARCHIE DES SOURCES (par ordre de priorité) :
-1. **Sources officielles** : .gouv.fr, institutions publiques, organismes officiels
-2. **Médias de référence** : Le Monde, Le Figaro, Libération, AFP, Reuters
-3. **Sites spécialisés réputés** : organismes sectoriels reconnus
-4. **Éviter** : blogs, forums, réseaux sociaux, sites d'opinion
-
-#### PROTOCOLE DE VÉRIFICATION :
-1. Si information stable et connue → NE PAS rechercher
-2. Si doute légitime → UNE recherche web ciblée sur sources fiables
-3. Si résultats contradictoires → recherche complémentaire avec mots-clés différents
-4. Si persistance d'incertitude → signaler l'ambiguïté (bleu)
-5. **OBLIGATOIRE** : Fournir le lien direct sous forme cliquable `<a href="URL" target="_blank">Source</a>`
-
-#### GESTION DES CONFLITS :
-- **Sources contradictoires** → indiquer l'incertitude avec explications (bleu) + liens cliquables
-- **Information non confirmée** → "nécessite vérification" avec lien cliquable si possible (bleu)
-- **Contexte manquant** → préciser les limites de la vérification (bleu) + lien source
-
-## FORMAT DE RETOUR HTML
-
-### Système de Couleurs :
-- **<span style="color: red;">Rouge</span>** : Fautes d'orthographe/grammaire corrigées
-- **<span style="color: orange;">Orange</span>** : Mots remplacés pour améliorer le style
-- **<span style="color: green;">Vert</span>** : Informations vérifiées et confirmées exactes
-- **<span style="color: blue;">Bleu</span>** : Informations nécessitant correction, nuance ou vérification supplémentaire
-
-### Format de Correction :
-**IMPORTANT** : Surligne le terme à modifier puis mets la correction entre parenthèses dans la même couleur
-
-### Exemples de Formatage :
-```html
-<!-- Fact-checking avec sources -->
-<span style="color: green;">Le PIB français en 2023 était de 2 800 milliards d'euros</span> (source : <a href="https://www.insee.fr/lien-direct" target="_blank">INSEE, 2024</a>)
-
-<span style="color: blue;">Le taux de chômage était de 7,3% en janvier 2024</span> (et non 8% comme indiqué - source : <a href="https://www.pole-emploi.fr/lien-direct" target="_blank">Pôle Emploi, février 2024</a>)
-
-<span style="color: blue;">Cette donnée nécessite une vérification avec des sources plus récentes</span> (dernière mise à jour : 2022 - source : <a href="https://lien.gouv.fr" target="_blank">Ministère</a>)
-
-<!-- Corrections linguistiques -->
-Il est <span style="color: red;">nécéssaire</span> (nécessaire) de vérifier ces informations pour <span style="color: orange;">améliorer</span> (optimiser) la qualité.
-```
-
-## INSTRUCTIONS FINALES
+## FORMAT DE RETOUR :
+- Mots corrigés en rouge : <span style="color: red;">mot_corrigé</span>
 - Retourne UNIQUEMENT le texte corrigé en HTML
-- **OBLIGATOIRE** : Inclus TOUJOURS le lien direct vers la source après chaque vérification web
-- **FORMAT LIENS** : `<a href="URL" target="_blank">Nom de la source, date</a>` (liens cliquables)
-- Format de correction : surligne le terme puis correction entre parenthèses dans la même couleur
-- En cas de doute persistant, utilise le bleu avec explication
-- Ne fais pas de recherche web pour des évidences ou des faits établis
-- Limite-toi aux éléments réellement incertains ou récents
-
-## EXEMPLES DE DÉCLENCHEMENT
-
-✅ **À VÉRIFIER** :
-- "Le budget 2024 de la ville s'élève à 180 millions d'euros"
-- "Selon Emmanuel Macron hier soir..."
-- "L'inflation a atteint 3,2% ce mois-ci"
-
-❌ **NE PAS VÉRIFIER** :
-- "Paris est la capitale de la France"
-- "La Révolution française a eu lieu en 1789"
-- "Cette mesure pourrait avoir des conséquences importantes" (opinion)</textarea>
+- Préserve le style et le ton original</textarea>
         </section>
 
         <!-- Section 2: Import de contenu -->
@@ -181,34 +117,10 @@ Il est <span style="color: red;">nécéssaire</span> (nécessaire) de vérifier 
         <section class="results-section" id="results-section" style="display: none;">
             <h2>🔍 Comparaison et résultats</h2>
             
-            <!-- Statistiques de correction -->
-            <div class="correction-stats" id="correction-stats">
-                <div class="stat-card">
-                    <h4>📊 Statistiques</h4>
-                    <div class="stats-grid">
-                        <div class="stat-item">
-                            <span class="stat-label">Caractères modifiés:</span>
-                            <span class="stat-value" id="chars-changed">0</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Mots modifiés:</span>
-                            <span class="stat-value" id="words-changed">0</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Changement:</span>
-                            <span class="stat-value" id="percent-changed">0%</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
             <!-- Légende des couleurs -->
             <div class="legend">
                 <span class="legend-item spelling">🔴 Orthographe/Grammaire</span>
                 <span class="legend-item style">🟠 Style amélioré</span>
-                <span class="legend-item verified">🟢 Informations vérifiées</span>
-                <span class="legend-item corrected">🔵 Corrections factuelles</span>
-                <span class="legend-item uncertain">🟡 Vérification requise</span>
             </div>
 
             <!-- Comparaison côte à côte -->
@@ -231,11 +143,9 @@ Il est <span style="color: red;">nécéssaire</span> (nécessaire) de vérifier 
 
             <!-- Actions -->
             <div class="actions-bar">
-                <button onclick="acceptCorrection()" class="success-btn">✅ Accepter la correction</button>
-                <button onclick="rejectCorrection()" class="secondary-btn">❌ Rejeter</button>
-                <button onclick="downloadWord()" class="primary-btn">📄 Télécharger Word</button>
-                <button onclick="downloadText()" class="secondary-btn">📝 Télécharger Texte</button>
-                <button onclick="generateReport()" class="primary-btn">📊 Générer rapport</button>
+                <button onclick="downloadWordCorrection()" class="primary-btn">📄 Télécharger Word</button>
+                <button onclick="downloadTextCorrection()" class="secondary-btn">📝 Télécharger Texte</button>
+                <button onclick="copyCorrection()" class="copy-btn">📋 Copier</button>
             </div>
         </section>
 
@@ -250,6 +160,144 @@ Il est <span style="color: red;">nécéssaire</span> (nécessaire) de vérifier 
                 <p class="no-history">Aucune correction effectuée</p>
             </div>
         </section>
+        </div>
+
+        <!-- SECTION TRADUCTION -->
+        <div id="translation-tab" class="tab-content">
+            <!-- Section 1: Gestion des prompts de traduction -->
+            <section class="prompt-section">
+                <h2>🌐 Prompts de traduction</h2>
+                
+                <div class="prompt-controls">
+                    <select id="saved-prompts-translation">
+                        <option value="">Sélectionner un prompt sauvegardé</option>
+                    </select>
+                    <input type="text" id="prompt-name-translation" placeholder="Nom pour sauvegarder">
+                    <button onclick="savePrompt('translation')">💾 Sauvegarder</button>
+                    <button onclick="loadPrompt('translation')">📁 Charger</button>
+                    <button onclick="deletePrompt('translation')">🗑️ Supprimer</button>
+                </div>
+                <textarea id="custom-prompt-translation" placeholder="Instructions personnalisées pour Claude...">Prompt de traduction français → anglais américain
+Traduisez ce texte français en anglais américain en suivant ces directives :
+
+1. Préservation du contenu et vérification contextuelle
+Analysez d'abord le contenu : identifiez le sujet, les références culturelles, les noms propres, les concepts spécifiques
+En cas de doute sur le sens d'une référence, d'un concept ou d'un terme, recherchez le contexte sur Internet avant de traduire
+Vérifiez les faits mentionnés si ils peuvent impacter la traduction (dates, événements, personnalités)
+Préservez l'exactitude : aucune information ne doit être perdue, déformée ou ajoutée
+
+2. Préservation et adaptation du style
+Identifiez le ton du texte original (professionnel, décontracté, technique, journalistique, marketing, etc.)
+Adaptez ce ton à l'anglais américain sans le copier littéralement
+Respectez le niveau de formalité : un texte familier reste familier, un texte soutenu reste soutenu
+Adaptez les expressions idiomatiques françaises vers leurs équivalents américains naturels
+
+3. Traitement des termes techniques
+Recherchez sur Internet la traduction standard des termes techniques, scientifiques ou spécialisés
+Vérifiez la terminologie dans des sources fiables (sites officiels, documentation technique, glossaires sectoriels)
+Privilégiez les termes établis dans le domaine plutôt que des traductions littérales
+Gardez la cohérence terminologique tout au long du texte
+
+4. Adaptation à l'anglais américain
+Évitez la traduction mot-à-mot : restructurez les phrases selon les patterns naturels de l'anglais
+Utilisez la syntaxe américaine : ordre des mots, constructions idiomatiques
+Appliquez l'orthographe américaine (color vs colour, realize vs realise, etc.)
+Adaptez les mesures et formats si pertinent (système métrique → impérial quand approprié)
+
+5. Processus de vérification
+Première traduction en gardant le sens et le style
+Recherche web pour vérifier les termes douteux ou techniques
+Relecture pour fluidité et naturalité en anglais américain
+Vérification finale que le contenu et le ton sont préservés</textarea>
+            </section>
+
+            <!-- Section 2: Import de contenu -->
+            <section class="upload-section">
+                <h2>📄 Import du contenu</h2>
+                
+                <!-- Zone de statistiques du contenu -->
+                <div class="content-stats" id="content-stats-translation" style="display: none;">
+                    <div class="stat-item">
+                        <span class="stat-label">Caractères:</span>
+                        <span class="stat-value" id="char-count-translation">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Mots:</span>
+                        <span class="stat-value" id="word-count-translation">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Tokens estimés:</span>
+                        <span class="stat-value" id="token-count-translation">0</span>
+                    </div>
+                </div>
+                
+                <div class="upload-area" id="upload-area-translation">
+                    <input type="file" id="file-input-translation" accept=".pdf,.doc,.docx,.txt" style="display: none;">
+                    <div class="upload-placeholder">
+                        <p>📁 Glissez-déposez votre fichier ici ou cliquez pour sélectionner</p>
+                        <small>Formats: PDF, Word (.doc, .docx), Texte (.txt) - Max 50MB</small>
+                    </div>
+                </div>
+                
+                <div class="divider">OU</div>
+                
+                <textarea id="text-input-translation" placeholder="Collez votre texte français à traduire ici..." oninput="updateContentStats('translation')"></textarea>
+                
+                <div id="file-status-translation"></div>
+            </section>
+
+            <!-- Section 3: Lancement -->
+            <section class="process-section">
+                <button id="translate-btn" class="primary-btn" onclick="translateArticle()">
+                    🌐 Traduire l'article
+                </button>
+                <div id="processing-status-translation" style="display: none;">
+                    <div class="processing-container">
+                        <div class="spinner"></div>
+                        <div class="processing-text">
+                            <p>Traduction en cours avec Claude...</p>
+                            <small id="processing-details-translation">Cela peut prendre quelques minutes selon la longueur du texte</small>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 4: Résultats avec comparaison côte à côte -->
+            <section class="results-section" id="results-section-translation" style="display: none;">
+                <h2>🔍 Comparaison et résultats</h2>
+                
+                <!-- Comparaison côte à côte -->
+                <div class="comparison-container">
+                    <div class="text-panel">
+                        <h3>🇫🇷 Texte français</h3>
+                        <div id="french-text" class="text-content"></div>
+                    </div>
+                    <div class="text-panel">
+                        <h3>🇺🇸 Texte anglais</h3>
+                        <div id="english-text" class="text-content"></div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="actions-bar">
+                    <button onclick="downloadWordTranslation()" class="primary-btn">📄 Télécharger Word</button>
+                    <button onclick="downloadTextTranslation()" class="secondary-btn">📝 Télécharger Texte</button>
+                    <button onclick="copyTranslation()" class="copy-btn">📋 Copier</button>
+                </div>
+            </section>
+
+            <!-- Section 5: Historique des traductions -->
+            <section class="history-section">
+                <h2>📚 Historique des traductions</h2>
+                <div class="history-controls">
+                    <button onclick="clearHistory('translation')" class="secondary-btn">🗑️ Vider l'historique</button>
+                    <span class="history-count">Traductions effectuées: <strong id="history-count-translation">0</strong></span>
+                </div>
+                <div id="history-list-translation" class="history-list">
+                    <p class="no-history">Aucune traduction effectuée</p>
+                </div>
+            </section>
+        </div>
     </main>
 
     <!-- Footer -->

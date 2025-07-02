@@ -1,8 +1,10 @@
 // Variables globales
 let currentArticle = null;
 let correctionHistory = JSON.parse(localStorage.getItem('correctionHistory')) || [];
-let savedPrompts = JSON.parse(localStorage.getItem('savedPrompts')) || {};
+let translationHistory = JSON.parse(localStorage.getItem('translationHistory')) || [];
+let savedPrompts = {};
 let isConnected = false;
+let currentMode = 'correction'; // 'correction' ou 'translation'
 
 // Initialisation de l'application
 document.addEventListener('DOMContentLoaded', function() {
@@ -20,8 +22,9 @@ async function initializeApp() {
     setupEventListeners();
     
     // Chargement des données sauvegardées
-    loadSavedPrompts();
+    await loadServerPrompts();
     updateHistoryDisplay();
+    updateHistoryDisplay('translation');
     
     // Mise à jour des statistiques de contenu
     updateContentStats();
@@ -60,6 +63,97 @@ function updateConnectionStatus(text, status) {
     const statusEl = document.getElementById('connection-status');
     statusEl.textContent = text;
     statusEl.className = `status-indicator ${status}`;
+}
+
+// ================================
+// GESTION DES ONGLETS
+// ================================
+
+function switchTab(tabName) {
+    // Mettre à jour les boutons d'onglets
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
+    
+    // Mettre à jour le contenu des onglets
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    document.getElementById(`${tabName}-tab`).classList.add('active');
+    
+    // Mettre à jour le mode courant
+    currentMode = tabName;
+    
+    // Mettre à jour les statistiques de contenu pour l'onglet actuel
+    updateContentStats(tabName);
+    
+    console.log(`📑 Onglet basculé vers: ${tabName}`);
+}
+
+// ================================
+// GESTION DES PROMPTS SERVEUR
+// ================================
+
+async function loadServerPrompts() {
+    try {
+        const response = await fetch('/api/files/prompts');
+        const prompts = await response.json();
+        savedPrompts = prompts;
+        
+        // Charger les prompts dans les deux sélecteurs
+        loadSavedPrompts();
+        loadSavedPrompts('translation');
+        
+        console.log('📁 Prompts chargés depuis le serveur');
+    } catch (error) {
+        console.error('❌ Erreur chargement prompts:', error);
+        showStatus('⚠️ Impossible de charger les prompts sauvegardés', 'warning');
+    }
+}
+
+async function savePromptToServer(name, content) {
+    try {
+        const response = await fetch('/api/files/prompts', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ name, content })
+        });
+        
+        if (response.ok) {
+            await loadServerPrompts(); // Recharger la liste
+            return true;
+        } else {
+            const error = await response.json();
+            throw new Error(error.error || 'Erreur sauvegarde');
+        }
+    } catch (error) {
+        console.error('❌ Erreur sauvegarde prompt:', error);
+        showStatus(`❌ Erreur sauvegarde: ${error.message}`, 'error');
+        return false;
+    }
+}
+
+async function deletePromptFromServer(name) {
+    try {
+        const response = await fetch(`/api/files/prompts/${encodeURIComponent(name)}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            await loadServerPrompts(); // Recharger la liste
+            return true;
+        } else {
+            const error = await response.json();
+            throw new Error(error.error || 'Erreur suppression');
+        }
+    } catch (error) {
+        console.error('❌ Erreur suppression prompt:', error);
+        showStatus(`❌ Erreur suppression: ${error.message}`, 'error');
+        return false;
+    }
 }
 
 // ================================
@@ -172,72 +266,94 @@ async function processFile(file) {
 // GESTION DES PROMPTS
 // ================================
 
-function loadSavedPrompts() {
-    const select = document.getElementById('saved-prompts');
-    select.innerHTML = '<option value="">Sélectionner un prompt sauvegardé</option>';
+function loadSavedPrompts(mode = 'correction') {
+    const suffix = mode === 'translation' ? '-translation' : '';
+    const promptSelect = document.getElementById(`saved-prompts${suffix}`);
     
-    Object.keys(savedPrompts).forEach(name => {
+    if (!promptSelect) return;
+    
+    promptSelect.innerHTML = '<option value="">Sélectionner un prompt sauvegardé</option>';
+    
+    // Filtrer les prompts selon le mode
+    const relevantPrompts = Object.keys(savedPrompts).filter(name => {
+        if (mode === 'translation') {
+            return name.includes('translation') || name.includes('traduction');
+        } else {
+            return name.includes('correction') || (!name.includes('translation') && !name.includes('traduction'));
+        }
+    });
+    
+    relevantPrompts.forEach(name => {
         const option = document.createElement('option');
         option.value = name;
         option.textContent = name;
-        select.appendChild(option);
+        promptSelect.appendChild(option);
     });
     
-    console.log(`📋 ${Object.keys(savedPrompts).length} prompts sauvegardés chargés`);
+    console.log(`📁 ${relevantPrompts.length} prompts ${mode} chargés`);
 }
 
-function savePrompt() {
-    const name = document.getElementById('prompt-name').value.trim();
-    const content = document.getElementById('custom-prompt').value.trim();
+async function savePrompt(mode = 'correction') {
+    const suffix = mode === 'translation' ? '-translation' : '';
+    const name = document.getElementById(`prompt-name${suffix}`).value.trim();
+    const content = document.getElementById(`custom-prompt${suffix}`).value.trim();
     
-    if (!name || !content) {
-        showStatus('⚠️ Veuillez saisir un nom et un contenu pour le prompt', 'warning');
+    if (!name) {
+        showStatus('⚠️ Veuillez entrer un nom pour le prompt', 'warning');
         return;
     }
-
+    
+    if (!content) {
+        showStatus('⚠️ Le prompt ne peut pas être vide', 'warning');
+        return;
+    }
+    
+    // Vérifier si le nom existe déjà
     if (savedPrompts[name]) {
-        if (!confirm(`Un prompt avec le nom "${name}" existe déjà. Le remplacer ?`)) {
+        if (!confirm(`Le prompt "${name}" existe déjà. Le remplacer ?`)) {
             return;
         }
     }
 
-    savedPrompts[name] = content;
-    localStorage.setItem('savedPrompts', JSON.stringify(savedPrompts));
-    loadSavedPrompts();
-    document.getElementById('prompt-name').value = '';
-    showStatus(`💾 Prompt "${name}" sauvegardé avec succès`, 'success');
-    
-    console.log(`💾 Prompt saved: ${name}`);
+    const success = await savePromptToServer(name, content);
+    if (success) {
+        document.getElementById(`prompt-name${suffix}`).value = '';
+        showStatus(`💾 Prompt "${name}" sauvegardé avec succès`, 'success');
+        console.log(`💾 Prompt saved: ${name}`);
+    }
 }
 
-function loadPrompt() {
-    const selectedName = document.getElementById('saved-prompts').value;
+function loadPrompt(mode = 'correction') {
+    const suffix = mode === 'translation' ? '-translation' : '';
+    const selectedName = document.getElementById(`saved-prompts${suffix}`).value;
+    
     if (!selectedName) {
         showStatus('⚠️ Veuillez sélectionner un prompt', 'warning');
         return;
     }
 
-    document.getElementById('custom-prompt').value = savedPrompts[selectedName];
+    document.getElementById(`custom-prompt${suffix}`).value = savedPrompts[selectedName];
     showStatus(`📁 Prompt "${selectedName}" chargé`, 'success');
     
     console.log(`📁 Prompt loaded: ${selectedName}`);
 }
 
-function deletePrompt() {
-    const selectedName = document.getElementById('saved-prompts').value;
+async function deletePrompt(mode = 'correction') {
+    const suffix = mode === 'translation' ? '-translation' : '';
+    const selectedName = document.getElementById(`saved-prompts${suffix}`).value;
+    
     if (!selectedName) {
         showStatus('⚠️ Veuillez sélectionner un prompt à supprimer', 'warning');
         return;
     }
 
     if (confirm(`Êtes-vous sûr de vouloir supprimer le prompt "${selectedName}" ?`)) {
-        delete savedPrompts[selectedName];
-        localStorage.setItem('savedPrompts', JSON.stringify(savedPrompts));
-        loadSavedPrompts();
-        document.getElementById('custom-prompt').value = '';
-        showStatus(`🗑️ Prompt "${selectedName}" supprimé`, 'success');
-        
-        console.log(`🗑️ Prompt deleted: ${selectedName}`);
+        const success = await deletePromptFromServer(selectedName);
+        if (success) {
+            document.getElementById(`custom-prompt${suffix}`).value = '';
+            showStatus(`🗑️ Prompt "${selectedName}" supprimé`, 'success');
+            console.log(`🗑️ Prompt deleted: ${selectedName}`);
+        }
     }
 }
 
@@ -256,30 +372,35 @@ function clearOptions() {
 // STATISTIQUES DE CONTENU
 // ================================
 
-function updateContentStats() {
-    const content = document.getElementById('text-input').value;
-    const statsSection = document.getElementById('content-stats');
+function updateContentStats(mode = 'correction') {
+    const suffix = mode === 'translation' ? '-translation' : '';
+    const content = document.getElementById(`text-input${suffix}`).value;
+    const statsSection = document.getElementById(`content-stats${suffix}`);
     
     if (!content || content.trim().length === 0) {
-        statsSection.style.display = 'none';
+        if (statsSection) statsSection.style.display = 'none';
         return;
     }
 
     const stats = analyzeContent(content);
     
-    document.getElementById('char-count').textContent = stats.characters.toLocaleString();
-    document.getElementById('word-count').textContent = stats.words.toLocaleString();
-    document.getElementById('token-count').textContent = stats.tokens.toLocaleString();
+    const charCountEl = document.getElementById(`char-count${suffix}`);
+    const wordCountEl = document.getElementById(`word-count${suffix}`);
+    const tokenCountEl = document.getElementById(`token-count${suffix}`);
+    
+    if (charCountEl) charCountEl.textContent = stats.characters.toLocaleString();
+    if (wordCountEl) wordCountEl.textContent = stats.words.toLocaleString();
+    if (tokenCountEl) tokenCountEl.textContent = stats.tokens.toLocaleString();
     
     // Alerte si le contenu est trop long
     if (stats.characters > 400000) {
-        document.getElementById('char-count').style.color = 'var(--danger-color)';
+        if (charCountEl) charCountEl.style.color = 'var(--danger-color)';
         showStatus('⚠️ Contenu trop long pour Claude (max 400k caractères)', 'warning');
     } else {
-        document.getElementById('char-count').style.color = 'var(--primary-color)';
+        if (charCountEl) charCountEl.style.color = 'var(--primary-color)';
     }
     
-    statsSection.style.display = 'flex';
+    if (statsSection) statsSection.style.display = 'flex';
 }
 
 function analyzeContent(content) {
@@ -562,9 +683,6 @@ function displayResults(article) {
     const resultsSection = document.getElementById('results-section');
     resultsSection.style.display = 'block';
     
-    // Statistiques de correction
-    displayCorrectionStats(article);
-    
     // Affichage côte à côte
     displayComparison(article);
     
@@ -577,13 +695,6 @@ function displayResults(article) {
     console.log('✅ Results displayed');
 }
 
-function displayCorrectionStats(article) {
-    const stats = article.changes || {};
-    
-    document.getElementById('chars-changed').textContent = Math.abs(stats.correctedLength - stats.originalLength) || 0;
-    document.getElementById('words-changed').textContent = stats.wordsChanged || 0;
-    document.getElementById('percent-changed').textContent = (stats.percentageChange || 0) + '%';
-}
 
 function displayComparison(article) {
     const originalEl = document.getElementById('original-text');
@@ -713,7 +824,12 @@ function highlightSpellingCorrections(original, correctedParagraph) {
             return false;
         });
         
-        // Plus de surlignage, retourner le mot tel quel
+        // Si correction d'orthographe détectée, surligner en rouge
+        if (hasSimilarMatch) {
+            return `<span style="color: #dc3545; background-color: #f8d7da;">${escapeHtml(word)}</span>`;
+        }
+        
+        // Mot normal
         return escapeHtml(word);
     }).join('');
 }
@@ -769,8 +885,8 @@ function compareWords(originalSentence, correctedSentence) {
             result += escapeHtml(correctedWord);
             lcsIndex++;
         } else {
-            // Mot modifié ou ajouté - plus de highlighting
-            result += escapeHtml(correctedWord);
+            // Mot modifié ou ajouté - surligner en orange
+            result += `<span style="color: #fd7e14; background-color: #fff3cd;">${escapeHtml(correctedWord)}</span>`;
         }
         j++;
     }
@@ -855,63 +971,55 @@ function rejectCorrection() {
     console.log('❌ Correction rejected');
 }
 
-async function downloadWord() {
-    if (!currentArticle) return;
-
-    try {
-        showStatus('📄 Génération du document Word...', 'info');
-        
-        const response = await fetch('/api/files/export-word', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                content: currentArticle.corrected,
-                title: 'Article corrigé',
-                includeMetadata: true
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error('Erreur lors de l\'export Word');
-        }
-
-        const blob = await response.blob();
-        downloadBlob(blob, `article_corrige_${Date.now()}.docx`);
-        
-        showStatus('✅ Document Word téléchargé', 'success');
-        console.log('📄 Word document downloaded');
-
-    } catch (error) {
-        console.error('❌ Word export error:', error);
-        showStatus(`❌ Erreur téléchargement Word: ${error.message}`, 'error');
+// Fonctions de téléchargement pour l'onglet correction
+function downloadWordCorrection() {
+    if (!currentArticle) {
+        showStatus('❌ Aucune correction à télécharger', 'error');
+        return;
     }
+
+    const correctedTextElement = document.getElementById('corrected-text');
+    if (!correctedTextElement || !correctedTextElement.innerHTML.trim()) {
+        showStatus('❌ Aucun texte corrigé à exporter', 'error');
+        return;
+    }
+    
+    const content = correctedTextElement.innerHTML;
+    downloadWord(content, 'correction');
 }
 
-function downloadText() {
-    if (!currentArticle) return;
+function downloadTextCorrection() {
+    if (!currentArticle) {
+        showStatus('❌ Aucune correction à télécharger', 'error');
+        return;
+    }
 
-    const content = `ARTICLE CORRIGÉ
-================
-
-Date de correction: ${currentArticle.timestamp.toLocaleString()}
-Options utilisées: ${currentArticle.options?.join(', ') || 'Aucune'}
-Temps de traitement: ${Math.round(currentArticle.processingTime / 1000)}s
-
-CONTENU:
---------
-
-${currentArticle.corrected}
-
-${currentArticle.factChecks ? `\nVÉRIFICATIONS FACTUELLES:\n${currentArticle.factChecks}` : ''}
-`;
-
-    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-    downloadBlob(blob, `article_corrige_${Date.now()}.txt`);
+    const correctedTextElement = document.getElementById('corrected-text');
+    if (!correctedTextElement || !correctedTextElement.innerHTML.trim()) {
+        showStatus('❌ Aucun texte corrigé à exporter', 'error');
+        return;
+    }
     
-    showStatus('✅ Fichier texte téléchargé', 'success');
-    console.log('📝 Text file downloaded');
+    const content = correctedTextElement.textContent || correctedTextElement.innerText || '';
+    downloadText(content, 'correction');
+}
+
+// Fonction pour copier le contenu corrigé
+function copyCorrection() {
+    if (!currentArticle) {
+        showStatus('❌ Aucune correction à copier', 'error');
+        return;
+    }
+
+    const correctedTextElement = document.getElementById('corrected-text');
+    if (!correctedTextElement || !correctedTextElement.innerHTML.trim()) {
+        showStatus('❌ Aucun texte corrigé à copier', 'error');
+        return;
+    }
+
+    // Copier avec le formatage HTML
+    const htmlContent = correctedTextElement.innerHTML;
+    copyToClipboard(htmlContent, true); // true pour inclure le formatage
 }
 
 function generateReport() {
@@ -1176,14 +1284,39 @@ window.addEventListener('unhandledrejection', function(e) {
 // FONCTIONS D'AIDE
 // ================================
 
-// Fonction pour copier du texte dans le presse-papiers
-async function copyToClipboard(text) {
+// Fonction pour copier du texte dans le presse-papiers avec formatage
+async function copyToClipboard(content, includeFormatting = false) {
     try {
-        await navigator.clipboard.writeText(text);
-        showStatus('📋 Texte copié dans le presse-papiers', 'success');
+        if (includeFormatting && navigator.clipboard.write) {
+            // Copier avec formatage HTML (pour les corrections)
+            const blob = new Blob([content], { type: 'text/html' });
+            const plainText = content.replace(/<[^>]*>/g, ''); // Version texte brut
+            const clipboardItem = new ClipboardItem({
+                'text/html': blob,
+                'text/plain': new Blob([plainText], { type: 'text/plain' })
+            });
+            await navigator.clipboard.write([clipboardItem]);
+            showStatus('📋 Texte copié avec formatage dans le presse-papiers', 'success');
+        } else {
+            // Copier en texte brut seulement
+            const plainText = typeof content === 'string' && content.includes('<')
+                ? content.replace(/<[^>]*>/g, '')
+                : content;
+            await navigator.clipboard.writeText(plainText);
+            showStatus('📋 Texte copié dans le presse-papiers', 'success');
+        }
     } catch (error) {
         console.error('❌ Erreur copie:', error);
-        showStatus('❌ Impossible de copier le texte', 'error');
+        // Fallback : copie en texte brut
+        try {
+            const plainText = typeof content === 'string' && content.includes('<')
+                ? content.replace(/<[^>]*>/g, '')
+                : content;
+            await navigator.clipboard.writeText(plainText);
+            showStatus('📋 Texte copié (sans formatage)', 'success');
+        } catch (fallbackError) {
+            showStatus('❌ Impossible de copier le texte', 'error');
+        }
     }
 }
 
@@ -1200,8 +1333,313 @@ function shareResults() {
     if (navigator.share) {
         navigator.share(shareData);
     } else {
-        copyToClipboard(currentArticle.corrected);
+        copyToClipboard(currentArticle.corrected, true); // Avec formatage HTML
     }
 }
 
-console.log('🎉 Application de correction d\'articles chargée et prête !');
+// ================================
+// FONCTIONS DE TRADUCTION
+// ================================
+
+async function translateArticle() {
+    if (!isConnected) {
+        showStatus('❌ Pas de connexion à Claude. Vérifiez votre configuration.', 'error');
+        return;
+    }
+
+    const content = document.getElementById('text-input-translation').value.trim();
+    if (!content) {
+        showStatus('⚠️ Veuillez saisir ou importer du contenu à traduire', 'warning');
+        return;
+    }
+
+    // Vérification de la longueur
+    if (content.length > 400000) {
+        showStatus('❌ Le contenu est trop long (maximum 400,000 caractères)', 'error');
+        return;
+    }
+
+    const customPrompt = document.getElementById('custom-prompt-translation').value.trim();
+    
+    if (!customPrompt) {
+        showStatus('⚠️ Veuillez sélectionner un prompt ou saisir des instructions personnalisées', 'warning');
+        return;
+    }
+
+    console.log(`🌐 Starting translation - Length: ${content.length} chars`);
+
+    showProcessing(true, 'translation');
+    updateProcessingDetails('Envoi de la demande de traduction à Claude...', 'translation');
+
+    try {
+        const startTime = Date.now();
+        
+        const response = await fetch('/api/correction/correct', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                content: content,
+                options: [],
+                customPrompt: customPrompt
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.details || errorData.error || `Erreur HTTP ${response.status}`);
+        }
+
+        updateProcessingDetails('Traitement de la traduction...', 'translation');
+        const result = await response.json();
+        
+        const processingTime = Date.now() - startTime;
+        console.log(`✅ Translation completed in ${processingTime}ms`);
+
+        const translation = {
+            original: content,
+            translated: result.correctedText,
+            processing: result.processing,
+            timestamp: new Date(),
+            processingTime: processingTime,
+            promptUsed: customPrompt.substring(0, 200),
+            mode: 'translation'
+        };
+
+        // Sauvegarder dans l'historique
+        translationHistory.unshift(translation);
+        if (translationHistory.length > 50) translationHistory.pop();
+        localStorage.setItem('translationHistory', JSON.stringify(translationHistory));
+
+        displayTranslationResults(translation);
+        showStatus(`✅ Traduction terminée en ${processingTime}ms`, 'success');
+
+    } catch (error) {
+        console.error('❌ Translation error:', error);
+        showStatus(`❌ Erreur: ${error.message}`, 'error');
+    } finally {
+        showProcessing(false, 'translation');
+    }
+}
+
+function displayTranslationResults(translation) {
+    const resultsSection = document.getElementById('results-section-translation');
+    
+    // Afficher les textes
+    document.getElementById('french-text').textContent = translation.original;
+    document.getElementById('english-text').textContent = translation.translated;
+    
+    // Afficher la section des résultats
+    resultsSection.style.display = 'block';
+    resultsSection.scrollIntoView({ behavior: 'smooth' });
+    
+    // Mettre à jour l'historique
+    updateHistoryDisplay('translation');
+    
+    console.log('✅ Translation results displayed');
+}
+
+function acceptTranslation() {
+    showStatus('✅ Traduction acceptée', 'success');
+    console.log('✅ Translation accepted');
+}
+
+function downloadWordTranslation() {
+    if (!document.getElementById('english-text').innerHTML) {
+        showStatus('⚠️ Aucune traduction à télécharger', 'warning');
+        return;
+    }
+    
+    const content = document.getElementById('english-text').innerHTML;
+    downloadWord(content, 'translation');
+}
+
+function downloadTextTranslation() {
+    if (!document.getElementById('english-text').innerHTML) {
+        showStatus('⚠️ Aucune traduction à télécharger', 'warning');
+        return;
+    }
+    
+    const content = document.getElementById('english-text').textContent;
+    downloadText(content, 'translation');
+}
+
+// Fonction pour copier la traduction
+function copyTranslation() {
+    const englishTextElement = document.getElementById('english-text');
+    if (!englishTextElement || !englishTextElement.innerHTML.trim()) {
+        showStatus('❌ Aucune traduction à copier', 'error');
+        return;
+    }
+
+    // Copier le contenu traduit (généralement en texte brut pour la traduction)
+    const textContent = englishTextElement.textContent || englishTextElement.innerText || '';
+    copyToClipboard(textContent, false); // false car la traduction n'a pas besoin du formatage HTML
+}
+
+// ================================
+// FONCTIONS D'HISTORIQUE MISES À JOUR
+// ================================
+
+function updateHistoryDisplay(mode = 'correction') {
+    const history = mode === 'translation' ? translationHistory : correctionHistory;
+    const suffix = mode === 'translation' ? '-translation' : '';
+    
+    const historyList = document.getElementById(`history-list${suffix}`);
+    const historyCount = document.getElementById(`history-count${suffix}`);
+    
+    if (!historyList || !historyCount) return;
+    
+    historyCount.textContent = history.length;
+    
+    if (history.length === 0) {
+        historyList.innerHTML = `<p class="no-history">Aucune ${mode === 'translation' ? 'traduction' : 'correction'} effectuée</p>`;
+        return;
+    }
+    
+    const itemsHtml = history.slice(0, 10).map((item, index) => {
+        const date = new Date(item.timestamp).toLocaleString('fr-FR');
+        const preview = item.original.substring(0, 100) + (item.original.length > 100 ? '...' : '');
+        const actionLabel = mode === 'translation' ? 'Traduction' : 'Correction';
+        
+        return `
+            <div class="history-item" onclick="loadFromHistory(${index}, '${mode}')">
+                <div class="history-header">
+                    <span class="history-date">${date}</span>
+                    <span class="history-stats">${item.original.length} car.</span>
+                </div>
+                <div class="history-preview">${escapeHtml(preview)}</div>
+                <div class="history-actions">
+                    <small>${actionLabel} en ${item.processingTime}ms</small>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    historyList.innerHTML = itemsHtml;
+}
+
+function loadFromHistory(index, mode = 'correction') {
+    const history = mode === 'translation' ? translationHistory : correctionHistory;
+    const item = history[index];
+    
+    if (!item) return;
+    
+    const suffix = mode === 'translation' ? '-translation' : '';
+    
+    // Charger le contenu original
+    document.getElementById(`text-input${suffix}`).value = item.original;
+    
+    // Charger le prompt utilisé si disponible
+    if (item.promptUsed) {
+        document.getElementById(`custom-prompt${suffix}`).value = item.promptUsed;
+    }
+    
+    // Afficher les résultats
+    if (mode === 'translation') {
+        displayTranslationResults(item);
+    } else {
+        displayResults(item);
+    }
+    
+    updateContentStats(mode);
+    showStatus(`📁 ${mode === 'translation' ? 'Traduction' : 'Correction'} rechargée depuis l'historique`, 'success');
+}
+
+function clearHistory(mode = 'correction') {
+    const actionLabel = mode === 'translation' ? 'traductions' : 'corrections';
+    
+    if (confirm(`Êtes-vous sûr de vouloir supprimer tout l'historique des ${actionLabel} ?`)) {
+        if (mode === 'translation') {
+            translationHistory = [];
+            localStorage.removeItem('translationHistory');
+        } else {
+            correctionHistory = [];
+            localStorage.removeItem('correctionHistory');
+        }
+        
+        updateHistoryDisplay(mode);
+        showStatus(`🗑️ Historique des ${actionLabel} supprimé`, 'success');
+    }
+}
+
+// ================================
+// FONCTIONS UTILITAIRES MISES À JOUR
+// ================================
+
+function showProcessing(show, mode = 'correction') {
+    const suffix = mode === 'translation' ? '-translation' : '';
+    const processingStatus = document.getElementById(`processing-status${suffix}`);
+    const actionBtn = document.getElementById(mode === 'translation' ? 'translate-btn' : 'correct-btn');
+    
+    if (processingStatus) {
+        processingStatus.style.display = show ? 'block' : 'none';
+    }
+    
+    if (actionBtn) {
+        actionBtn.disabled = show;
+        actionBtn.textContent = show
+            ? (mode === 'translation' ? '🔄 Traduction en cours...' : '🔄 Correction en cours...')
+            : (mode === 'translation' ? '🌐 Traduire l\'article' : '🚀 Corriger l\'article');
+    }
+}
+
+function updateProcessingDetails(message, mode = 'correction') {
+    const suffix = mode === 'translation' ? '-translation' : '';
+    const details = document.getElementById(`processing-details${suffix}`);
+    if (details) {
+        details.textContent = message;
+    }
+}
+
+function downloadWord(content, mode = 'correction') {
+    const title = mode === 'translation' ? 'Article traduit' : 'Article corrigé';
+    
+    fetch('/api/files/export-word', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            content: content,
+            title: title,
+            includeMetadata: true
+        })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Erreur export');
+        return response.blob();
+    })
+    .then(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${title.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}.docx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showStatus('📄 Document Word téléchargé', 'success');
+    })
+    .catch(error => {
+        console.error('❌ Erreur export Word:', error);
+        showStatus('❌ Erreur lors de l\'export Word', 'error');
+    });
+}
+
+function downloadText(content, mode = 'correction') {
+    const title = mode === 'translation' ? 'article_traduit' : 'article_corrige';
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${title}_${Date.now()}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showStatus('📝 Fichier texte téléchargé', 'success');
+}
+
+console.log('🎉 Application de correction et traduction d\'articles chargée et prête !');

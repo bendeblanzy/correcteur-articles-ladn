@@ -99,6 +99,71 @@ body {
     transition: var(--transition);
 }
 
+/* Navigation par onglets */
+.tabs-nav {
+    background: var(--white);
+    border-bottom: 2px solid var(--border-color);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.tabs {
+    display: flex;
+    gap: 0;
+}
+
+.tab-btn {
+    background: none;
+    border: none;
+    padding: 1rem 2rem;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-light);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: var(--transition);
+    position: relative;
+}
+
+.tab-btn:hover {
+    background: var(--light-gray);
+    color: var(--text-color);
+}
+
+.tab-btn.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+    background: var(--white);
+}
+
+.tab-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--primary-color);
+    border-radius: 2px 2px 0 0;
+}
+
+/* Contenu des onglets */
+.tab-content {
+    display: none;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 .status-indicator.connected {
     background: rgba(40, 167, 69, 0.2);
     border: 1px solid rgba(40, 167, 69, 0.3);
@@ -566,6 +631,33 @@ button:active {
 .secondary-btn:hover {
     background: linear-gradient(135deg, #6c757d, var(--text-light));
     box-shadow: 0 4px 15px rgba(108, 117, 125, 0.4);
+}
+
+.copy-btn {
+    background: linear-gradient(135deg, var(--info-color), #138496);
+    color: var(--white);
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--border-radius);
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 120px;
+    justify-content: center;
+}
+
+.copy-btn:hover {
+    background: linear-gradient(135deg, #20c997, var(--info-color));
+    box-shadow: 0 4px 15px rgba(23, 162, 184, 0.4);
+    transform: translateY(-2px);
+}
+
+.copy-btn:active {
+    transform: translateY(0);
 }
 
 button:disabled {
